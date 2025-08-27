@@ -6,6 +6,7 @@ import StoriesBar from '../components/StoriesBar'
 import moment from 'moment'
 import PostCard from '../components/PostCard'
 import RecentMessages from '../components/RecentMessages'
+import {motion} from 'framer-motion'
 
 const Feed = () => {
   const [feeds, setFeeds] = useState([])
@@ -20,7 +21,9 @@ const Feed = () => {
 
 
   return !loading ? (
-    <div className='w-[90%] sm:w-[100%] mt-4 h-[100%] overflow-y-scroll py-10  xl:pr-5 flex items-start xl:justify-center xl:gap-8 gap-4'>
+    <motion.div initial={{ opacity: 0, y: 150 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 1.5 }} className='w-[90%] sm:w-[100%] mt-4 h-[100%] overflow-y-scroll py-10  xl:pr-5 flex items-start xl:justify-center xl:gap-8 gap-4'>
       {/*----- stories and post  section ---------- */}
       <div className="overflow-x-hidden   ">
         <StoriesBar />
@@ -52,7 +55,7 @@ const Feed = () => {
 
 
       </div>
-    </div>
+    </motion.div>
   ) : (
     <Loading />
   )

@@ -21,7 +21,9 @@ const Discover = () => {
   }
 
   return (
-    <div className="min-h-screen w-[100vw] sm:w-full relative sm:pl-10 pb-10">
+    <motion.div initial={{ opacity: 0, y: 150 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 1.5 }} className="min-h-screen w-[100vw] sm:w-full relative sm:pl-10 pb-10">
       {/* Heading */}
       <p className="font-bold text-4xl sm:text-5xl mt-10">Discover People</p>
       <p className="text-sm sm:text-lg mt-[-1px] text-[#45556C]">
@@ -70,7 +72,7 @@ const Discover = () => {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
