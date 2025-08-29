@@ -4,6 +4,7 @@ import connectDB from '../config/db.js';
 import User from '../models/user.js';
 import Connection from '../models/Connection.js';
 import sendEmail from '../config/nodeMailer.js';
+import Story from '../models/Story.js';
 
 export const inngest = new Inngest({ id: 'pingup-app' });
 
@@ -188,4 +189,79 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   }
 )
 
-export const functions = [syncUserCreation, syncUserUpdation, syncUserDeletion,sendNewConnectionRequestReminder];
+
+// inngest function to delete story after 24 hours
+const deleteStory = inngest.createFunction(
+  {id:"story-delete"},
+  {event:'app/story.delete'},
+  async({event,step})=>{
+    const {storyId} = event.data;
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    await step.sleepUntil('wait-for-24-hours',in24Hours)
+    await step.run("delete-story",async ()=>{
+      await Story.findByIdAndDelete(storyId)
+      return {message:"Story Deleted"}
+    })
+  }
+
+
+)
+
+
+// send notification of unseen messages
+const sendNotificationOfUnseenMessages = inngest.createFunction(
+  {id:'send-unseen-messages-notification'},
+  {cron:"TZ=America/New_York 0 9 * * * "},
+  async ({step})=>{
+    const messages = await Message.find({seen:false,}).populate('to_user_id')
+    const unseenCount = {}
+
+    messages.map(message=>{
+      unseenCount[message.to_user_id._id] = (unseenCount[message.to_user_id._id] || 0)+1
+
+    })
+    for(const userId in unseenCount){
+      const user = await User.findById(userId)
+      const subject = `You habe ${unseenCount[userId]} unseen messages`
+      const body = `
+  <div style="font-family: Arial, Helvetica, sans-serif; background-color: #f9f9f9; padding: 40px; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 30px;">
+      
+      <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">
+        Hello, ${user.full_name} 👋
+      </h2>
+      
+      <p style="font-size: 16px; line-height: 1.6; text-align: center;">
+        You have <strong style="color: #e74c3c;">${unseenCount[userId]}</strong> unseen messages.
+      </p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL}/messages" 
+           style="display: inline-block; background: #3498db; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+          View Messages
+        </a>
+      </div>
+      
+      <p style="font-size: 14px; color: #666; line-height: 1.6; text-align: center;">
+        Thanks,<br/>
+        <strong>Pingup (Subharthy)</strong> – Stay Connected
+      </p>
+      
+    </div>
+  </div>
+`
+
+      await sendEmail({
+        to:user.email,
+        subject,
+        body
+      })
+      return {message:"Notification Sent"}
+    }
+  }
+)
+
+export const functions = [deleteStory,syncUserCreation, syncUserUpdation
+  , syncUserDeletion
+  ,sendNewConnectionRequestReminder,
+sendNotificationOfUnseenMessages];
