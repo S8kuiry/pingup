@@ -21,7 +21,12 @@ dotenv.config()
 const app =  express()
 
 //middleware
-app.use(cors())
+app.use(
+  cors({
+    origin: "https://pingup-client-indol.vercel.app", // frontend domain
+    credentials: true, // if you are sending cookies or auth headers
+  })
+);
 app.use(express.json())
 app.use(clerkMiddleware())
 
