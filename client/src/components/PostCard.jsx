@@ -118,7 +118,7 @@ const PostCard = ({ itm }) => {
             <p className="text-sm">19</p>
           </div>
 
-          <div className="flex items-center gap-1 cursor-pointer">
+          <div onCanPlay={()=>navigate()} className="flex items-center gap-1 cursor-pointer">
             <Share2 size={17} />
             <p className="text-sm">90</p>
           </div>

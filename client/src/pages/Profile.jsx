@@ -1,89 +1,63 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { Calendar, Edit, MapPin, User } from 'lucide-react'
-import moment from 'moment'
-import { motion } from 'framer-motion'
-import { AppContext } from '../context/AppContext'
-import { useAuth } from '@clerk/clerk-react'
-import { api } from '../api/axios.js'
-import toast from 'react-hot-toast'
-import { useSelector } from 'react-redux'
-import Loading from '../components/Loading'
-import PostCard from '../components/PostCard'
-import ShowEdit from '../components/ShowEdit'
+import React, { useContext, useEffect, useState, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Calendar, Edit, MapPin, User } from 'lucide-react';
+import moment from 'moment';
+import { motion } from 'framer-motion';
+import { AppContext } from '../context/AppContext';
+import { useAuth } from '@clerk/clerk-react';
+import { api } from '../api/axios.js';
+import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import Loading from '../components/Loading';
+import PostCard from '../components/PostCard';
+import ShowEdit from '../components/ShowEdit';
 
 const Profile = () => {
-  const currentUser = useSelector((state) => state.user.value)
-  const { getToken } = useAuth()
-  const { profileId } = useParams()
+  const currentUser = useSelector((state) => state.user.value);
+  const { getToken } = useAuth();
+  const { profileId } = useParams();
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [activeTab, setActiveTab] = useState('posts');
+  const { showEdit, setShowEdit } = useContext(AppContext);
 
-  const [user, setUser] = useState(null)
-  const [activeTab, setActiveTab] = useState('posts')
-  const [posts, setPosts] = useState([])
-  const { showEdit, setShowEdit } = useContext(AppContext)
+  // --- Fetch profile + posts
+  const fetchUser = useCallback(async () => {
+    try {
+      const id = profileId || currentUser?._id;
+      if (!id) return;
 
-  // fetch user + posts wrapped in useCallback (prevents re-creation)
-  const fetchUser = useCallback(
-    async (id) => {
-      try {
-        const token = await getToken()
-        const { data } = await api.post(
-          '/api/user/profiles',
-          { profileId: id },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        if (data.success) {
-          setUser(data.profile)
-          setPosts(data.posts || [])
-        } else {
-          toast.error(data.message)
-        }
-      } catch (error) {
-        toast.error(error.message || 'Failed to fetch profile')
-        console.error(error)
+      const token = await getToken();
+      const { data } = await api.post(
+        '/api/user/profiles',
+        { profileId: id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        setUser(data.profile);
+        setPosts(data.posts || []);
+      } else {
+        toast.error(data.message);
       }
-    },
-    [getToken]
-  )
+    } catch (error) {
+      toast.error(error.message || 'Failed to fetch profile');
+      console.error(error);
+    }
+  }, [profileId, currentUser, getToken]);
 
-  // Effect for fetching profile
+  // --- Load profile on mount or profileId change
   useEffect(() => {
-    let isMounted = true
+    let isMounted = true;
 
-    const loadProfile = async () => {
-      const id = profileId || currentUser?._id
-      if (!id) return
-      const token = await getToken()
-      try {
-        const { data } = await api.post(
-          '/api/user/profiles',
-          { profileId: id },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        if (isMounted) {
-          if (data.success) {
-            setUser(data.profile)
-            setPosts(data.posts || [])
-          } else {
-            toast.error(data.message)
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
-          toast.error(error.message || 'Error loading profile')
-        }
-      }
-    }
+    fetchUser();
 
-    loadProfile()
-
-    // cleanup to prevent setState on unmounted component
     return () => {
-      isMounted = false
-    }
-  }, [profileId, currentUser, getToken])
+      isMounted = false; // cleanup
+    };
+  }, [fetchUser]);
 
-  if (!user) return <Loading />
+  if (!user) return <Loading />;
 
   return (
     <>
@@ -127,20 +101,16 @@ const Profile = () => {
                 <p className="text-sm text-gray-600">
                   @{user.username || 'Add a Username'}
                 </p>
-                {user.bio && (
-                  <p className="text-xs text-gray-600">{user.bio}</p>
-                )}
+                {user.bio && <p className="text-xs text-gray-600">{user.bio}</p>}
               </div>
 
               {!profileId && (
-                <div className="h-full flex items-start justify-center">
-                  <button
-                    onClick={() => setShowEdit(true)}
-                    className="cursor-pointer rounded-sm py-1 px-2 border border-gray-400 flex items-center gap-2 text-sm"
-                  >
-                    <Edit size={14} /> Edit
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowEdit(true)}
+                  className="cursor-pointer rounded-sm py-1 px-2 border border-gray-400 flex items-center gap-2 text-sm"
+                >
+                  <Edit size={14} /> Edit
+                </button>
               )}
             </div>
 
@@ -162,7 +132,7 @@ const Profile = () => {
             <div className="w-[85%] flex items-center justify-start gap-6 mt-1 text-gray-600">
               <div>
                 <p>
-                  <span className="font-bold">{user.posts?.length || 0}</span>{' '}
+                  <span className="font-bold">{posts.length}</span>{' '}
                   <span className="text-sm text-gray-600">Posts</span>
                 </p>
               </div>
@@ -204,7 +174,7 @@ const Profile = () => {
           <div className="sm:max-w-4xl w-[90%] grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5 mb-10">
             {posts
               .filter((post) => post.image_urls?.length > 0)
-              .map((post) =>
+              .flatMap((post) =>
                 post.image_urls.map((img, idx) => (
                   <Link
                     to={img}
@@ -239,14 +209,11 @@ const Profile = () => {
       {showEdit && (
         <ShowEdit
           user={user}
-          onUpdateSuccess={() => {
-            const id = profileId || currentUser?._id
-            if (id) fetchUser(id)
-          }}
+          onUpdateSuccess={fetchUser}
         />
       )}
     </>
-  )
-}
+  );
+};
 
-export default Profile
+export default Profile;

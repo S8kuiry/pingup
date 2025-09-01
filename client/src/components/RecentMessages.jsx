@@ -2,16 +2,35 @@ import React, { useEffect, useState } from 'react'
 import { dummyRecentMessagesData } from '../assets/assets'
 import { Link } from 'react-router-dom'
 import moment from 'moment'
+import toast from 'react-hot-toast'
+import { api } from '../api/axios.js'
+import {useAuth} from '@clerk/clerk-react'
 
 const RecentMessages = () => {
   const [messages, setMessages] = useState([])
+  const {getToken} = useAuth()
 
   const fetchRecentMessages = async () => {
-    setMessages(dummyRecentMessagesData)
+    try {
+      const {data} =await api.get('/api/message/recent',{headers:{
+        Authorization:`Bearer ${await getToken()}`
+      }})
+      
+        setMessages(data.messages)
+
+      
+      
+    } catch (error) {
+      toast.error(error.message)
+      
+    }
   }
 
   useEffect(() => {
     fetchRecentMessages()
+    setInterval(()=>{
+      fetchRecentMessages()
+    },3000)
   }, [])
 
   return (

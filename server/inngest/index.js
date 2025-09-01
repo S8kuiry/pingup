@@ -192,20 +192,32 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
 
 // inngest function to delete story after 24 hours
 const deleteStory = inngest.createFunction(
-  {id:"story-delete"},
-  {event:'app/story.delete'},
-  async({event,step})=>{
-    const {storyId} = event.data;
-    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    await step.sleepUntil('wait-for-24-hours',in24Hours)
-    await step.run("delete-story",async ()=>{
-      await Story.findByIdAndDelete(storyId)
-      return {message:"Story Deleted"}
-    })
+  {
+    id: 'delete-old-stories',
+  },
+  {
+    cron: 'TZ=Asia/Kolkata 0 * * * *', // runs every hour at minute 0
+  },
+  async ({ step }) => {
+    try {
+      // Connect to the database
+      await connectDB();
+
+      // Calculate cutoff date (24 hours ago)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // Delete all stories older than 24 hours
+      const result = await Story.deleteMany({ createdAt: { $lt: cutoff } });
+
+      console.log(`Deleted ${result.deletedCount} old stories`);
+
+      return { message: `Deleted ${result.deletedCount} old stories` };
+    } catch (error) {
+      console.error('Error deleting old stories:', error);
+      throw error;
+    }
   }
-
-
-)
+);
 
 
 // send notification of unseen messages

@@ -18,6 +18,7 @@ const ShowEdit = ({ onUpdateSuccess }) => {
   const [bio, setBio] = useState(user?.bio || '')
   const [location, setLocation] = useState(user?.location || '')
   const { setShowEdit } = useContext(AppContext)
+ 
 
   const getImagePreview = (img) => {
     if (typeof img === 'string') return img
