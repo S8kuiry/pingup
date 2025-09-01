@@ -3,7 +3,8 @@ import { protect } from "../middleware/auth.js";
 import { 
   getChatMessages, 
   sendMessage, 
-  sseController 
+  sseController,
+  getUserRecentMessages
 } from "../controllers/messageController.js";
 import { upload } from "../config/multer.js";
 
@@ -34,5 +35,12 @@ MessageRouter.post(
  * @access Private
  */
 MessageRouter.post("/get", protect, getChatMessages);
+
+/**
+ * @desc Get recent messages for logged in user
+ * @route GET /api/message/recent
+ * @access Private
+ */
+MessageRouter.get("/recent", protect, getUserRecentMessages);
 
 export default MessageRouter;

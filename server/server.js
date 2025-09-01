@@ -1,59 +1,48 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import connectDB from "./config/db.js";
-import { inngest, functions } from "./inngest/index.js";
-import { serve } from "inngest/express"; // ✅
-import { clerkMiddleware } from "@clerk/express";
-import userRouter from "./routes/userRouter.js";
-import postRouter from "./routes/postRouter.js";
-import storyRouter from "./routes/storyRouter.js";
-import MessageRouter from "./routes/messageRouter.js";
 
-dotenv.config();
-const app = express();
+import express from 'express'
+import dotenv from 'dotenv'
+import cors from 'cors'
+import connectDB from './config/db.js'
+import {inngest,functions} from './inngest/index.js'
+import { serve } from 'inngest/express'   // ✅ Add this import
+import { clerkMiddleware } from '@clerk/express'
+import userRouter from './routes/userRouter.js'
+import postRouter from './routes/postRouter.js'
+import storyRouter from './routes/storyRouter.js'
+import MessageRouter from './routes/messageRouter.js'
 
-// ✅ CORS fix
-// ✅ Allow all origins (open CORS)
-app.use(
-  cors({
-    origin: true, // reflect request origin (access from anywhere)
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
 
-// ✅ Allow preflight (OPTIONS)
-app.options("*", cors());
 
-app.use(express.json());
 
-// ✅ Clerk auth middleware
-app.use(clerkMiddleware());
 
-// ✅ Connect DB
-connectDB();
 
-// ✅ Routes
-app.get("/", (req, res) => {
-  res.send("Hello ping up");
-});
+// app initialise
+dotenv.config()
+const app =  express()
 
-app.use("/api/inngest", serve({ client: inngest, functions }));
-app.use("/api/user", userRouter);
-app.use("/api/post", postRouter);
-app.use("/api/story", storyRouter);
-app.use("/api/message", MessageRouter);
+//middleware
+app.use(cors())
+app.use(express.json())
+app.use(clerkMiddleware())
 
-// ✅ SSE fix inside message router (important!)
-/*
-Example inside MessageRouter:
-res.setHeader("Access-Control-Allow-Origin", "https://pingup-client-indol.vercel.app");
-res.setHeader("Access-Control-Allow-Credentials", "true");
-*/
+//port
+const PORT = process.env.PORT
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log("🚀 Server running on port " + PORT);
-});
+//db connect 
+connectDB()
+
+//send
+app.get('/',(req,res)=>{
+res.send("Hello ping up")
+    
+})
+app.use('/api/inngest',serve({ client: inngest, functions }))
+app.use('/api/user',userRouter)
+app.use('/api/post',postRouter)
+app.use('/api/story',storyRouter)
+app.use('/api/message',MessageRouter)
+//listen
+app.listen(PORT,()=>{
+    console.log("Successfully running on port "+PORT)
+
+})
