@@ -21,10 +21,22 @@ dotenv.config()
 const app =  express()
 
 //middleware
+const allowedOrigins = [
+  'https://pingup-client-indol.vercel.app', // your frontend
+  'http://localhost:5173'                   // local dev
+];
+
 app.use(cors({
-    origin: "https://pingup-client-indol.vercel.app", // your frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, // allow cookies or auth headers
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json())
 app.use(clerkMiddleware())
