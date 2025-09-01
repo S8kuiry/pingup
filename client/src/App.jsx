@@ -21,14 +21,9 @@ const App = () => {
   const { user } = useUser()
   const { getToken } = useAuth()
   const dispatch = useDispatch()
-  const { pathname } = useLocation()
-  const pathnameRef = useRef(pathname)
+  
 
-  // Keep track of current pathname
-  useEffect(() => {
-    pathnameRef.current = pathname
-  }, [pathname])
-
+  
   // Fetch user and connections when logged in
   useEffect(() => {
     const fetchData = async () => {
@@ -46,38 +41,7 @@ const App = () => {
     fetchData()
   }, [user, getToken, dispatch])
 
-  // SSE (Server Sent Events) for real-time messages
-  useEffect(() => {
-    if (!user) return
-
-    const eventSource = new EventSource(
-      `${import.meta.env.VITE_BASEURL}/api/message/${user.id}`
-    )
-
-    eventSource.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data)
-
-        if (pathnameRef.current === `/messages/${message.from_user_id}`) {
-          dispatch(addMessage(message))
-        } else {
-          // You might show a toast/notification for new messages in other chats
-        }
-      } catch (err) {
-        console.error('Error parsing SSE message:', err)
-      }
-    }
-
-    eventSource.onerror = (err) => {
-      console.error('SSE error:', err)
-      eventSource.close()
-    }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [user, dispatch])
-
+ 
   return (
     <div>
       <Toaster position="top-center" />

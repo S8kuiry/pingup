@@ -3,7 +3,6 @@ import { requireAuth } from "@clerk/express";
 export const protect = (req, res, next) => {
   try {
     const auth = req.auth(); // 👈 it's an object, not a function
-    console.log("✅ Clerk Authenticated User:", auth);
 
     if (!auth || !auth.userId) {
       return res.status(401).json({ success: false, message: "Not authenticated" });

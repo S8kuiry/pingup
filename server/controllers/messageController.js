@@ -31,7 +31,7 @@ export const sseController = async (req, res) => {
 // Send Message
 export const sendMessage = async (req, res) => {
   try {
-    const userId = req.user.id; // from protect middleware
+    const {userId} = req.auth(); // from protect middleware
     const { to_user_id, text } = req.body;
     const image = req.file;
 
@@ -83,7 +83,7 @@ export const sendMessage = async (req, res) => {
 // Get chat messages
 export const getChatMessages = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const {userId} = req.auth();
     const { to_user_id } = req.body;
 
     const messages = await Message.find({
