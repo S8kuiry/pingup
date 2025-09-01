@@ -16,7 +16,7 @@ const app = express();
 // ✅ CORS fix
 app.use(
   cors({
-    origin: "https://pingup-client-indol.vercel.app", // your frontend domain
+    origin: "https://pingup-ha753a68n-subharthys-projects.vercel.app/", // your frontend domain
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
