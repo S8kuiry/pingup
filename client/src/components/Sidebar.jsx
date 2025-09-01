@@ -3,13 +3,14 @@ import { assets, menuItemsData } from '../assets/assets';
 import { motion } from 'framer-motion';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { CirclePlus, LogOut, Menu, X } from 'lucide-react';
-import { useClerk, UserButton, useUser } from '@clerk/clerk-react';
+import { useClerk, UserButton } from '@clerk/clerk-react';
+import { useSelector } from 'react-redux';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const [sideBarOpen, setSideBarOpen] = useState(false);
-  const { openUserProfile ,signOut} = useClerk();
-  const { user } = useUser();
+  const { openUserProfile, signOut } = useClerk();
+  const user = useSelector((state) => state.user.value);
 
   // Menu items
   const renderMenuItems = () => (
@@ -36,12 +37,14 @@ const Sidebar = () => {
 
   // Profile section
   const renderProfileSection = () => (
-    <div className="w-full flex items-center gap-3 p-4 border-t border-gray-200 pb-6 mb-3">
-      <UserButton  />
+    <div className="w-full flex items-center gap-3 p-4 border-t border-gray-200 pb-6 mb-3 relative">
+      <UserButton />
       <div className="flex flex-col items-start">
-        <p className="font-semibold text-gray-700 text-sm">{user?.fullName}</p>
+        <p className="font-semibold text-gray-700 text-sm">
+          {user?.full_name || 'Loading...'} {/* ✅ safe access */}
+        </p>
         <motion.button
-        whileHover={{scale:1.02}}
+          whileHover={{ scale: 1.02 }}
           onClick={openUserProfile}
           className="cursor-pointer text-xs text-gray-500 hover:text-[#432DD7] transition"
         >
@@ -49,14 +52,18 @@ const Sidebar = () => {
         </motion.button>
       </div>
 
-      <LogOut onClick={signOut}   size={20} className='text-gray-500  cursor-pointer absolute right-5'/>
+      <LogOut
+        onClick={signOut}
+        size={20}
+        className="text-gray-500 cursor-pointer absolute right-5"
+      />
     </div>
   );
 
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="bg-white z-30 hidden sm:flex flex-col fixed left-0 inset-y-0 sm:w-64  w-0 shadow shadow-gray-300 ">
+      <div className="bg-white z-30 hidden sm:flex flex-col fixed left-0 inset-y-0 sm:w-64 w-0 shadow shadow-gray-300">
         {/* Top Section */}
         <div className="flex flex-col flex-1">
           <div className="w-full border-b border-gray-300 py-3 pl-4">
@@ -70,7 +77,10 @@ const Sidebar = () => {
 
           {renderMenuItems()}
 
-          <div onClick={()=>navigate('/create-post')} className="w-[85%] mx-auto mt-10 py-2 text-white flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#615FFF] to-[#9810FA] cursor-pointer hover:opacity-90 transition">
+          <div
+            onClick={() => navigate('/create-post')}
+            className="w-[85%] mx-auto mt-10 py-2 text-white flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#615FFF] to-[#9810FA] cursor-pointer hover:opacity-90 transition"
+          >
             <CirclePlus />
             Create Post
           </div>
@@ -88,7 +98,6 @@ const Sidebar = () => {
             className="cursor-pointer rounded-sm border-2 border-gray-600 flex items-center justify-center p-1 backdrop-blur-xs"
           >
             <Menu />
-           
           </div>
         </div>
       )}

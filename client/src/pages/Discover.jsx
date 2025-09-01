@@ -1,29 +1,64 @@
-import { Search } from 'lucide-react'
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { dummyConnectionsData } from '../assets/assets'
-import UserComponent from '../components/UserComponent'
+import { Search } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import UserComponent from "../components/UserComponent"
+import { api } from "../api/axios.js"
+import { useAuth } from "@clerk/clerk-react"
+import toast from "react-hot-toast"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchUser } from "../features/user/userSlice.js"
 
 const Discover = () => {
   const [input, setInput] = useState("")
-  const [users, setUsers] = useState(dummyConnectionsData)
+  const [users, setUsers] = useState([]) // ✅ always an array
   const [loading, setLoading] = useState(false)
+  const dispatch = useDispatch()
+  const { getToken } = useAuth()
 
   const handleSearch = async (e) => {
     if (e.key === "Enter") {
-      setUsers([])
       setLoading(true)
-      setTimeout(() => {
-        setUsers(dummyConnectionsData)
+      try {
+        const token = await getToken()
+        const { data } = await api.post(
+          "/api/user/discover",
+          { input },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+
+        if (data.success) {
+          setUsers(data.filteredUsers || []) // ✅ fallback if backend sends undefined
+        } else {
+          toast.error(data.message || "Failed to fetch users")
+          setUsers([])
+        }
+
+        setInput("")
+      } catch (error) {
+        toast.error(error?.message || "Something went wrong")
+        setUsers([])
+      } finally {
         setLoading(false)
-      }, 1000)
+      }
     }
   }
 
+  useEffect(() => {
+    getToken().then((token) => {
+      if (token) dispatch(fetchUser(token))
+    })
+  
+  }, [dispatch, getToken])
+
   return (
-    <motion.div initial={{ opacity: 0, y: 150 }}
+    <motion.div
+      initial={{ opacity: 0, y: 150 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1.5 }} className="min-h-screen w-[100vw] sm:w-full relative sm:pl-10 pb-10">
+      transition={{ duration: 1.5 }}
+      className="min-h-screen w-[100vw] sm:w-full relative sm:pl-10 pb-10"
+    >
       {/* Heading */}
       <p className="font-bold text-4xl sm:text-5xl mt-10">Discover People</p>
       <p className="text-sm sm:text-lg mt-[-1px] text-[#45556C]">
@@ -45,14 +80,9 @@ const Discover = () => {
       </div>
 
       {/* User List / Loader */}
-      <div className="sm:w-full w-[90%] mt-14 flex flex-wrap items-center sm:justify-start justify-center  gap-3 min-h-[200px]">
-        {!loading ? (
-          users.length > 0 ? (
-            users.map((user) => <UserComponent key={user._id} user={user} />)
-          ) : (
-            <p className="text-gray-500 text-sm">No users found</p>
-          )
-        ) : (
+      <div className="sm:w-full w-[90%] mt-14 flex flex-wrap items-center sm:justify-start justify-center gap-3 min-h-[200px]">
+        {loading ? (
+          // Loader Animation
           <div className="w-full flex items-center justify-center">
             <div className="flex gap-3">
               {[0, 1, 2].map((i) => (
@@ -70,6 +100,10 @@ const Discover = () => {
               ))}
             </div>
           </div>
+        ) : users && users.length > 0 ? (
+          users.map((user) => <UserComponent key={user._id} user={user} />)
+        ) : (
+          <p className="text-gray-500 text-sm">No users found</p>
         )}
       </div>
     </motion.div>

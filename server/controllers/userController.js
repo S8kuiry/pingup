@@ -94,7 +94,7 @@ export const updateUserData = async (req, res) => {
             updatedData.cover_photo = url;
         }
         const updatedUser = await User.findByIdAndUpdate(userId, updatedData, { new: true })
-        return res.json({ success: true, updatedUser })
+        return res.json({ success: true, updatedUser,message:"Profile Updated SuccessFully" })
 
 
     } catch (error) {
@@ -117,7 +117,7 @@ export const discoverUsers = async (req, res) => {
                 { location: new RegExp(input, 'i') }
             ]
         })
-        const filteredUsers = allUsers.filter(user => user._id !== userId)
+        const filteredUsers = allUsers
         return res.json({ success: true, filteredUsers })
 
 
@@ -128,79 +128,95 @@ export const discoverUsers = async (req, res) => {
     }
 }
 
-// followrs following list 
+// follow user
 export const followUser = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { id } = req.body
+  try {
+    const userId = req.userId;
+    const { id } = req.body;
 
-        const user = await User.findById(userId)
-        if (user.following.includes(id)) {
-            return res.json({ success: false, message: "You are already following this User" })
-        }
-        user.following.push(id)
-        await user.save()
-
-        const toUser = await User.findById(id)
-        toUser.followers.push(userId)
-        await toUser.save()
-        return res.json({ success: true, message: "Now you are following the User " })
-
-
-
-
-    } catch (error) {
-        return res.json({ success: false, message: error.message })
-
+    if (userId === id) {
+      return res.json({ success: false, message: "You cannot follow yourself" });
     }
-}
+
+    const user = await User.findById(userId);
+    const toUser = await User.findById(id);
+
+    if (!user || !toUser) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // ✅ Ensure ObjectId comparison is consistent
+    const alreadyFollowing = user.following.some(
+      (f) => f.toString() === id.toString()
+    );
+    if (alreadyFollowing) {
+      return res.json({ success: false, message: "You are already following this user" });
+    }
+
+    user.following.push(toUser._id);
+    await user.save();
+
+    // only add if not already in followers
+    const alreadyFollower = toUser.followers.some(
+      (f) => f.toString() === userId.toString()
+    );
+    if (!alreadyFollower) {
+      toUser.followers.push(user._id);
+      await toUser.save();
+    }
+
+    return res.json({ success: true, message: "Followed successfully" });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
 
 // unfollow user
 export const unfollowUser = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { id } = req.body
+  try {
+    const userId = req.userId;
+    const { id } = req.body;
 
-        const user = await User.findById(userId)
-        if (user.following.includes(id)) {
-            user.following = await user.following.filter(u_id => u_id !== id)
-            await user.save()
-
-            const toUser = await User.findById(id)
-            toUser.followers = await user.followers.filter(u_id => u_id !== userId)
-
-            return res.json({ success: true, message: "You have unfollowed the User" })
-
-
-        } else {
-            return res.json({ success: true, message: "You are not following the User" })
-
-
-        }
-
-
-
-    } catch (error) {
-        return res.json({ success: false, message: error.message })
-
-
+    if (userId === id) {
+      return res.json({ success: false, message: "You cannot unfollow yourself" });
     }
 
+    const user = await User.findById(userId);
+    const toUser = await User.findById(id);
 
-}
-// send connection request ......
+    if (!user || !toUser) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // ✅ remove properly using ObjectId string compare
+    user.following = user.following.filter((f) => f.toString() !== id.toString());
+    await user.save();
+
+    toUser.followers = toUser.followers.filter((f) => f.toString() !== userId.toString());
+    await toUser.save();
+
+    return res.json({ success: true, message: "You have unfollowed the user" });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+//send connection request
 export const sendConnectionRequest = async (req, res) => {
   try {
     const { userId } = req.auth();
     const { id } = req.body;
 
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    if (userId === id) {
+      return res.json({ success: false, message: "You cannot connect with yourself" });
+    }
 
+    // Rate-limit: max 20 requests per day
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const connectionRequests = await Connection.find({
       from_user_id: userId,
       createdAt: { $gt: last24Hours }
     });
-
     if (connectionRequests.length >= 20) {
       return res.json({
         success: false,
@@ -208,7 +224,8 @@ export const sendConnectionRequest = async (req, res) => {
       });
     }
 
-    const connection = await Connection.findOne({
+    // Check if connection already exists (either direction)
+    let connection = await Connection.findOne({
       $or: [
         { from_user_id: userId, to_user_id: id },
         { from_user_id: id, to_user_id: userId }
@@ -216,21 +233,39 @@ export const sendConnectionRequest = async (req, res) => {
     });
 
     if (!connection) {
-       const newConnection = await Connection.create({
+      // ✅ No existing connection → create new pending request
+      const newConnection = await Connection.create({
         from_user_id: userId,
-        to_user_id: id
+        to_user_id: id,
+        status: "pending"
       });
+
       await inngest.send({
-        name:'app/connection-request',
-        data:{connenctionId : newConnection._id}
-      }) 
-      
+        name: "app/connection-request",
+        data: { connectionId: newConnection._id }
+      });
 
       return res.json({ success: true, message: "Connection Request Sent Successfully" });
-    } else if (connection.status === "accepted") {
+    }
+
+    // ✅ If already accepted
+    if (connection.status === "accepted") {
       return res.json({ success: false, message: "You are already connected with this user" });
     }
 
+    // ✅ If the other user already sent a request → auto accept
+    if (connection.status === "pending" && String(connection.to_user_id) === String(userId)) {
+      connection.status = "accepted";
+      await connection.save();
+
+      return res.json({
+        success: true,
+        message: "Connection request accepted automatically",
+        acceptedUser: await User.findById(id)
+      });
+    }
+
+    // ✅ Otherwise still pending
     return res.json({ success: false, message: "Connection request Pending" });
 
   } catch (error) {
@@ -239,57 +274,101 @@ export const sendConnectionRequest = async (req, res) => {
 };
 
 
+
 // get user connections 
-export const getUserConnections = async(req,res)=>{
-    try {
-        const {userId} = req.auth()
-        const user = await User.findById(userId).populate('connections followers following')
-        const connections = user.connections
-        const followers = user.followers
-        const  following = user.following
+export const getUserConnections = async (req, res) => {
+  try {
+    const { userId } = req.auth();
 
-        const pendingConnections = (await Connection.find({to_user_id:userId,status:"pending"}).populate('from_user_id').map(connection => connection.from_user_id))
-        res.json({success:true,connections,followers,following,pendingConnections})
-        
-    } catch (error) {
-            return res.json({ success: false, message: error.message });
+    // Fetch user with populated fields
+    const user = await User.findById(userId).populate(
+      "connections followers following"
+    );
 
-
-        
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
     }
-}
+
+    // Pending connections: first resolve query, then map
+    const pendingConnectionsDocs = await Connection.find({
+      to_user_id: userId,
+      status: "pending",
+    }).populate("from_user_id");
+
+    const pendingConnections = pendingConnectionsDocs.map(
+      (connection) => connection.from_user_id
+    );
+
+    res.json({
+      success: true,
+      connections: user.connections || [],
+      followers: user.followers || [],
+      following: user.following || [],
+      pendingConnections,
+    });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
 
 //accept connection request 
-export const acceptConnectionRequest = async (req,res)=>{
-    try {
-        const {userId} = req.auth()
-        const {id} = req.body
+// accept connection request
+export const acceptConnectionRequest = async (req, res) => {
+  try {
+    const { userId } = req.auth(); // logged-in user
+    const { id } = req.body; // id = requester
 
-        const connection = await User.findOne({from_user_id:id,to_user_id:userId})
+    // find the connection request (from -> requester, to -> logged-in user)
+    const connection = await Connection.findOne({
+      from_user_id: id,
+      to_user_id: userId,
+      status: "pending",
+    });
 
-        if(!connection){
-            return res.json({success:false,message:"No Connection found"})
-            
-        }
-        const user = await User.findById(userId)
-        user.connections.push(id)
-        await user.save()
-
-        const toUser =  await User.findById(id)
-        toUser.connections.push(userId)
-        await toUser.save()
-
-
-        connection.status = "accepted"
-        await connection.save()
-        return res.json({success:true,message:"Connection accepted successfully"})
-
-    } catch (error) {
-                    return res.json({ success: false, message: error.message });
-
-        
+    if (!connection) {
+      return res.json({ success: false, message: "No pending request found" });
     }
-}
+
+    // add each other to connections list
+    const user = await User.findById(userId);
+    const toUser = await User.findById(id);
+
+    if (!user || !toUser) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // prevent duplicates
+    if (!user.connections.includes(id)) {
+      user.connections.push(id);
+    }
+    if (!toUser.connections.includes(userId)) {
+      toUser.connections.push(userId);
+    }
+
+    await user.save();
+    await toUser.save();
+
+    // update connection request status
+    connection.status = "accepted";
+    await connection.save();
+
+    return res.json({
+      success: true,
+      message: "Connection accepted successfully",
+      acceptedUser: {
+        _id: toUser._id,
+        full_name: toUser.full_name,
+        username: toUser.username,
+        profile_picture: toUser.profile_picture,
+        bio: toUser.bio,
+      },
+    });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
 // get user profiles
 export const getUserProfiles = async (req,res)=>{
     try {
@@ -298,7 +377,7 @@ export const getUserProfiles = async (req,res)=>{
         if( !profile){
             return res.json({success:false,message:"Profile Not Found"})
         }
-        const posts = await Post.findById({user:profileId}).populate('user')
+        const posts = await Post.find({user:profileId}).populate('user')
         return res.json({success:true,profile,posts})
         
     } catch (error) {

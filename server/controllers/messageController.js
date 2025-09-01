@@ -59,6 +59,7 @@ export const sendMessage = async (req, res) => {
                     { width: '1280' }
                 ]
             })
+            media_url = url
         }
         const message = await Message.create({
             from_user_id:userId,

@@ -5,14 +5,37 @@ import moment from 'moment'
 import CreateStory from './CreateStory'
 import { AppContext } from '../context/AppContext'
 import StoryViewer from './StoryViewer'
+import toast from 'react-hot-toast'
+import { useAuth } from '@clerk/clerk-react'
+import { api } from '../api/axios.js'
 
 const StoriesBar = () => {
   const { createStory, setCreateStory, storyViewer, setStoryViewer } = useContext(AppContext)
   const [stories, setStories] = useState([])
   const [activeStory, setActiveStory] = useState(null) // store clicked story
+  const {getToken} = useAuth()
+
+
+  //fetch stories 
+  const fetchStories = async ()=>{
+    try {
+      const token = await getToken()
+      const {data} = await api.get('/api/story/get',{headers:{
+        Authorization:`Bearer ${token}`
+      }})
+      if(data.success){
+              setStories(data.stories)
+      }
+    } catch (error) {
+      toast.error(error.message)
+      
+    }
+  }
 
   useEffect(() => {
-    setStories(dummyStoriesData)
+    
+    fetchStories()
+    console.log(stories)
   }, [])
 
   return (

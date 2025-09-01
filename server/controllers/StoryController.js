@@ -11,6 +11,9 @@ export const addUserStory = async (req, res) => {
         const { content, media_type, background_color } = req.body
         const media = req.file
         let media_url = ''
+        if (media_type === "text" && !content?.trim()) {
+      return res.status(400).json({ success: false, message: "Text story cannot be empty" });
+    }
         if (media_type === "image" || media_type === "video") {
             const fileBuffer = fs.readFileSync(media.path)
             const response = await imagekit.upload({
@@ -44,7 +47,7 @@ export const addUserStory = async (req, res) => {
 
     }
 }
-//get user stories
+//get user stories 
 export const  getStories = async(req,res)=>{
     try {
         const {userId} = req.auth()

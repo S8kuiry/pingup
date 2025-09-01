@@ -6,7 +6,7 @@ import Connection from '../models/Connection.js';
 import sendEmail from '../config/nodeMailer.js';
 import Story from '../models/Story.js';
 
-export const inngest = new Inngest({ id: 'pingup-app' });
+export const inngest = new Inngest({ id: 'pingup-app',eventKey: process.env.INNGEST_EVENT_KEY, });
 
 const syncUserCreation = inngest.createFunction(
   { id: 'sync-user-from-clerk' },

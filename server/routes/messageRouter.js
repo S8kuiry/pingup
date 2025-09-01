@@ -1,17 +1,38 @@
+import express from "express";
+import { protect } from "../middleware/auth.js";
+import { 
+  getChatMessages, 
+  sendMessage, 
+  sseController 
+} from "../controllers/messageController.js";
+import { upload } from "../config/multer.js";
 
+const MessageRouter = express.Router();
 
-import express from 'express'
-import { protect } from '../middleware/auth.js'
-import { getChatMessages, sendMessage, sseController } from '../controllers/messageController.js'
-import { upload } from '../config/multer.js'
+/**
+ * @desc SSE stream for real-time messages
+ * @route GET /api/message/stream/:userId
+ * @access Private
+ */
+MessageRouter.get("/stream/:userId", protect, sseController);
 
+/**
+ * @desc Send a message (text or image)
+ * @route POST /api/message/send
+ * @access Private
+ */
+MessageRouter.post(
+  "/send",
+  protect,
+  upload.single("image"), 
+  sendMessage
+);
 
-const MessageRouter = express.Router()
+/**
+ * @desc Get chat messages between logged in user and another user
+ * @route POST /api/message/get
+ * @access Private
+ */
+MessageRouter.post("/get", protect, getChatMessages);
 
-MessageRouter.get('/:userId',sseController)
-MessageRouter.post('/send',upload.single('image'),protect,sendMessage)
-MessageRouter.post('/get',protect,getChatMessages)
-
-
-
-export default MessageRouter
+export default MessageRouter;

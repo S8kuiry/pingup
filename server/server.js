@@ -40,7 +40,7 @@ app.use('/api/inngest',serve({ client: inngest, functions }))
 app.use('/api/user',userRouter)
 app.use('/api/post',postRouter)
 app.use('/api/story',storyRouter)
-app.use('api/message',MessageRouter)
+app.use('/api/message',MessageRouter)
 //listen
 app.listen(PORT,()=>{
     console.log("Successfully running on port "+PORT)
