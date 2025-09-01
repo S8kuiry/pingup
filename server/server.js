@@ -14,16 +14,17 @@ dotenv.config();
 const app = express();
 
 // ✅ CORS fix
+// ✅ Allow all origins (open CORS)
 app.use(
   cors({
-    origin: "https://pingup-ha753a68n-subharthys-projects.vercel.app/", // your frontend domain
+    origin: true, // reflect request origin (access from anywhere)
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// ✅ Allow preflight (OPTIONS) requests globally
+// ✅ Allow preflight (OPTIONS)
 app.options("*", cors());
 
 app.use(express.json());
