@@ -14,19 +14,17 @@ dotenv.config();
 const app = express();
 
 // --- CORS ---
+
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow server-to-server requests
-    // allow localhost or any Vercel frontend preview domain
-    if (origin === 'http://localhost:5173' || /\.vercel\.app$/.test(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
+    callback(null, origin || '*'); // reflect the origin or allow server-to-server
   },
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true,
 }));
+
 
 // Parse JSON
 app.use(express.json());
