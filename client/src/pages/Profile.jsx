@@ -70,11 +70,11 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="sm:w-[55%] w-[90%] rounded-xl h-103 shadow shadow-md">
           {/* Cover */}
-          <div className="w-full h-[52%]">
+          <div className="w-full h-[52%] flex items-center justify-center">
             <img
-              src={user.cover_photo}
+              src={user.cover_photo?user.cover_photo:'/profile_default.jpeg'}
               alt="cover"
-              className="rounded-t-xl object-cover w-full h-full"
+              className={`${user.cover_photo?"rounded-t-xl object-cover w-full h-full":'object-cover'}`}
             />
           </div>
 
