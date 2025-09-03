@@ -44,3 +44,20 @@ export const fetchComments = async (req,res)=>{
     
   }
 }
+
+export const deleteComment = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    await Comment.findByIdAndDelete(id);
+    return res.status(200).json({ success: true, message: "Comment deleted successfully" });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
