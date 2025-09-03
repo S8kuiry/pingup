@@ -1,4 +1,4 @@
-import { BadgeCheck, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { BadgeCheck, Heart, MessageCircle, Share2, User } from 'lucide-react';
 import moment from 'moment';
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,12 +8,14 @@ import { toast } from 'react-hot-toast';
 import { api } from '../api/axios';
 import { AppContext } from '../context/AppContext';
 import CommentBox from './CommentBox.jsx';
+import { useEffect } from 'react';
 
 const PostCard = ({ itm }) => {
   const { showComment, setShowComment } = useContext(AppContext);
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.user?.value);
   const { getToken } = useAuth();
+  const [comment,setComment] = useState(0)
 
   if (!itm) return null; // Prevent crash if no post
 
@@ -40,6 +42,20 @@ const PostCard = ({ itm }) => {
       toast.error(error?.message || 'Something went wrong');
     }
   };
+ const handleFetch = async (postId) => {
+    try {
+      const { data } = await api.post('/api/comment/get', { postId })
+      setComment(data.comments.length)
+
+    } catch (error) {
+      toast.error(error.message)
+
+
+    }
+  }
+  useEffect(()=>{
+    handleFetch(itm._id)
+  },[itm])
 
   return (
     <div className="relative max-w-2xl w-full rounded-lg shadow-lg min-h-30 h-auto py-4 px-4 flex flex-col items-start justify-start">
@@ -99,11 +115,11 @@ const PostCard = ({ itm }) => {
           </div>
 
           <div
-            onClick={() => setShowComment(true)}
+            onClick={() => setShowComment(!showComment)}
             className="active:scale-95 flex items-center gap-1 cursor-pointer"
           >
             <MessageCircle size={17} />
-            <p className="text-sm">{itm?.comments_count || 0}</p>
+            <p className="text-sm">{comment|| 0}</p>
           </div>
 
           <div className="flex items-center gap-1 cursor-pointer">
@@ -112,8 +128,7 @@ const PostCard = ({ itm }) => {
           </div>
         </div>
       </div>
-
-      {showComment && <CommentBox />}
+      {showComment && <CommentBox currentUser={currentUser} postId={itm._id}/>}
     </div>
   );
 };

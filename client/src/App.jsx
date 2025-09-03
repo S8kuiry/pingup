@@ -32,6 +32,7 @@ const App = () => {
         if (token) {
           dispatch(fetchUser(token))
           dispatch(fetchConnections(token))
+          console.log(token)
         } else {
           console.log('No token yet')
         }
