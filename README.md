@@ -1,7 +1,6 @@
 # PingUp (Subharthy)
 
-[![Live Demo](https://pingup-client-git-main-subharthys-projects.vercel.app?_vercel_share=sJKeHcbaHaSQEX7NYwuZcqsLdbIGzwyA)
-
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-brightgreen)](https://pingup-client-git-main-subharthys-projects.vercel.app?_vercel_share=sJKeHcbaHaSQEX7NYwuZcqsLdbIGzwyA)
 
 ---
 
@@ -29,8 +28,6 @@
 - **Icons**: Lucide React
 
 ---
-
-
 
 ## 🧪 Installation
 
