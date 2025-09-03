@@ -98,8 +98,9 @@ const CommentBox = ({ postId, currentUser }) => {
   // handle delete
   const handleDelete = async (commentId) => {
   try {
-    const { data } = await api.delete("/api/comment/delete", { id: commentId } );
-
+const { data } = await api.delete("/api/comment/delete", {
+  data: { id: commentId }  // ⚠️ must be inside `data`
+});
     if (data.success) {
       setComments(prev => prev.filter(c => c._id !== commentId));
       toast.success("Comment deleted");
